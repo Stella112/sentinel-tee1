@@ -1,533 +1,208 @@
-import { useState, useEffect, useRef } from "react";
-import {
-  Shield, Terminal, Lock, Cpu, AlertTriangle,
-  CheckCircle, XCircle, Zap, Activity, Radio, Twitter
-} from "lucide-react";
 
-// ── ANIMATED GRADIENT MESH BACKGROUND ─────────────────────
-function GradientMesh() {
-  return (
-    <div className="fixed inset-0 z-0 overflow-hidden">
-      {/* Base */}
-      <div className="absolute inset-0" style={{ background: "#080600" }} />
-
-      {/* Animated blobs */}
-      <div className="absolute w-[800px] h-[800px] rounded-full opacity-20"
-        style={{
-          background: "radial-gradient(circle, #f59e0b 0%, #b45309 40%, transparent 70%)",
-          top: "-200px", left: "-200px",
-          animation: "blob1 12s ease-in-out infinite alternate",
-        }} />
-      <div className="absolute w-[600px] h-[600px] rounded-full opacity-15"
-        style={{
-          background: "radial-gradient(circle, #fcd34d 0%, #d97706 40%, transparent 70%)",
-          bottom: "-100px", right: "-100px",
-          animation: "blob2 15s ease-in-out infinite alternate",
-        }} />
-      <div className="absolute w-[500px] h-[500px] rounded-full opacity-10"
-        style={{
-          background: "radial-gradient(circle, #fbbf24 0%, #92400e 50%, transparent 70%)",
-          top: "40%", left: "50%",
-          animation: "blob3 18s ease-in-out infinite alternate",
-        }} />
-
-      {/* Gold shimmer lines */}
-      <div className="absolute inset-0 opacity-[0.04]" style={{
-        backgroundImage: "repeating-linear-gradient(45deg, #f59e0b 0px, transparent 1px, transparent 60px, #f59e0b 61px)",
-        backgroundSize: "86px 86px",
-      }} />
-
-      {/* Vignette */}
-      <div className="absolute inset-0" style={{
-        background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.85) 100%)"
-      }} />
-
-      <style>{`
-        @keyframes blob1 {
-          0%   { transform: translate(0px, 0px) scale(1); }
-          50%  { transform: translate(80px, 60px) scale(1.15); }
-          100% { transform: translate(30px, 100px) scale(0.95); }
-        }
-        @keyframes blob2 {
-          0%   { transform: translate(0px, 0px) scale(1); }
-          50%  { transform: translate(-60px, -80px) scale(1.2); }
-          100% { transform: translate(-100px, -30px) scale(0.9); }
-        }
-        @keyframes blob3 {
-          0%   { transform: translate(-50%, -50%) scale(1); }
-          50%  { transform: translate(-50%, -50%) scale(1.3); }
-          100% { transform: translate(-30%, -60%) scale(0.85); }
-        }
-        @keyframes shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        .gold-shimmer {
-          background: linear-gradient(90deg, #92400e, #f59e0b, #fcd34d, #f59e0b, #92400e);
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: shimmer 4s linear infinite;
-        }
-        .gold-shimmer-static {
-          background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 40%, #b45309 70%, #fbbf24 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-// ── SCANLINE ───────────────────────────────────────────────
-function ScanlineOverlay() {
-  return (
-    <div className="pointer-events-none fixed inset-0 z-50 opacity-[0.02]"
-      style={{ backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,1) 2px,rgba(0,0,0,1) 4px)" }} />
-  );
-}
-
-// ── CORNER BRACKETS ────────────────────────────────────────
-function CornerBrackets({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`relative ${className}`}>
-      <span className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 opacity-70 z-10" style={{ borderColor: "#f59e0b" }} />
-      <span className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 opacity-70 z-10" style={{ borderColor: "#f59e0b" }} />
-      <span className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 opacity-70 z-10" style={{ borderColor: "#f59e0b" }} />
-      <span className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 opacity-70 z-10" style={{ borderColor: "#f59e0b" }} />
-      {children}
-    </div>
-  );
-}
-
-// ── SCORE RING ─────────────────────────────────────────────
-function ScoreRing({ score }: { score: number }) {
-  const r = 56;
-  const circ = 2 * Math.PI * r;
-  const fill = (score / 100) * circ;
-  const color = score >= 80 ? "#f59e0b" : score >= 50 ? "#fb923c" : "#f87171";
-  const glow  = score >= 80 ? "rgba(245,158,11,0.9)" : score >= 50 ? "rgba(251,146,60,0.9)" : "rgba(248,113,113,0.9)";
-  const label = score >= 80 ? "LOW RISK" : score >= 50 ? "MEDIUM RISK" : "CRITICAL";
-
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="relative w-40 h-40">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128">
-          <circle cx="64" cy="64" r={r} fill="none" stroke="#1a1000" strokeWidth="10" />
-          <circle cx="64" cy="64" r={r} fill="none" stroke={color} strokeWidth="10"
-            strokeDasharray={`${fill} ${circ}`} strokeLinecap="round"
-            style={{ filter: `drop-shadow(0 0 10px ${glow})`, transition: "stroke-dasharray 1.2s cubic-bezier(.4,0,.2,1)" }} />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-mono text-4xl font-black" style={{ color, textShadow: `0 0 24px ${glow}` }}>{score}</span>
-          <span className="font-mono text-xs" style={{ color: "rgba(245,158,11,0.4)" }}>/100</span>
-        </div>
-      </div>
-      <div className="font-mono text-xs tracking-[0.2em] px-4 py-1.5 rounded border"
-        style={{ color, borderColor: color, boxShadow: `0 0 16px ${color}40, inset 0 0 10px ${color}10` }}>
-        {label}
-      </div>
-    </div>
-  );
-}
-
-// ── TYPEWRITER ─────────────────────────────────────────────
-function useTypewriter(text: string, speed = 10) {
-  const [displayed, setDisplayed] = useState("");
-  useEffect(() => {
-    setDisplayed("");
-    if (!text) return;
-    let i = 0;
-    const id = setInterval(() => {
-      i++;
-      setDisplayed(text.slice(0, i));
-      if (i >= text.length) clearInterval(id);
-    }, speed);
-    return () => clearInterval(id);
-  }, [text, speed]);
-  return displayed;
-}
-
-// ── LOG TERMINAL ───────────────────────────────────────────
-function LogTerminal({ text }: { text: string }) {
-  const displayed = useTypewriter(text, 10);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [displayed]);
-
-  return (
-    <div ref={ref}
-      className="h-52 overflow-y-auto font-mono text-xs leading-relaxed p-4 rounded border whitespace-pre-wrap"
-      style={{
-        background: "rgba(8,5,0,0.85)",
-        borderColor: "rgba(245,158,11,0.2)",
-        color: "rgba(253,230,138,0.85)",
-        scrollbarWidth: "thin",
-        scrollbarColor: "#b4530940 transparent",
-      }}>
-      <span style={{ color: "rgba(245,158,11,0.45)" }}>&gt; AUDIT OUTPUT LOG{"\n"}</span>
-      {displayed}
-      <span className="animate-pulse" style={{ color: "#f59e0b" }}>█</span>
-    </div>
-  );
-}
-
-// ── LOADING TERMINAL ───────────────────────────────────────
-const LOADING_STEPS = [
-  "Establishing encrypted channel...",
-  "Routing to secure enclave...",
-  "Verifying TEE attestation certificate...",
-  "Deploying analysis payload...",
-  "Scanning for reentrancy vectors...",
-  "Checking ownership & privilege escalation...",
-  "Analyzing token transfer restrictions...",
-  "Inspecting mint/burn functions...",
-  "Cross-referencing honeypot signatures...",
-  "Running static vulnerability analysis...",
-  "Generating cryptographic proof...",
-  "Signing with enclave private key...",
-];
-
-function LoadingTerminal({ step }: { step: number }) {
-  const [dots, setDots] = useState("");
-  useEffect(() => {
-    const id = setInterval(() => setDots(d => d.length >= 3 ? "" : d + "."), 350);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <div className="rounded-lg p-4 font-mono text-xs space-y-1.5 border"
-      style={{ background: "rgba(8,5,0,0.9)", borderColor: "rgba(245,158,11,0.2)" }}>
-      {LOADING_STEPS.slice(0, step + 1).map((msg, i) => (
-        <div key={i} className="flex items-center gap-2.5">
-          <span style={{ color: "#b45309" }} className="select-none">›</span>
-          <span style={{ color: i < step ? "rgba(245,158,11,0.35)" : "#fcd34d" }}>
-            {msg}
-            {i === step && <span style={{ color: "rgba(245,158,11,0.55)" }}>{dots}</span>}
-          </span>
-          {i < step && <span className="ml-auto text-[10px] tracking-widest" style={{ color: "#b45309" }}>✓ OK</span>}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── MAIN ───────────────────────────────────────────────────
-interface AuditResult { score: number; analysis: string; hash: string; }
+import React, { useState } from 'react';
+import { Shield, Activity, Lock, Terminal, Loader2, CheckCircle2, AlertTriangle, Zap, Cpu, Twitter } from 'lucide-react';
 
 export default function App() {
-  const [input, setInput]   = useState("");
-  const [loading, setLoading] = useState(false);
-  const [loadStep, setLoadStep] = useState(0);
-  const [result, setResult] = useState<AuditResult | null>(null);
-  const [error, setError]   = useState<string | null>(null);
-  const stepRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [code, setCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [result, setResult] = useState<{
+    score: number;
+    analysis: string;
+    hash: string;
+  } | null>(null);
 
   const handleAudit = async () => {
-    if (!input.trim() || loading) return;
-    setLoading(true); setResult(null); setError(null); setLoadStep(0);
-
-    stepRef.current = setInterval(() => {
-      setLoadStep(prev => {
-        if (prev >= LOADING_STEPS.length - 1) { clearInterval(stepRef.current!); return prev; }
-        return prev + 1;
-      });
-    }, 800);
+    if (!code.trim()) return;
+    setIsLoading(true);
+    setError('');
+    setResult(null);
 
     try {
-      const res = await fetch("http://38.49.209.149:8001/audit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target_code: input }),
+      // Connects to your live VPS
+      const response = await fetch('http://38.49.209.149:8001/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_code: code })
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status} — ${res.statusText}`);
-      const data = await res.json();
-      const raw: string = data.analysis_result ?? "";
-      const match = raw.match(/Risk Score[:\s]+(\d+)/i);
-      const score = match ? Math.min(100, Math.max(0, parseInt(match[1]))) : 50;
-      const analysis = raw.replace(/Risk Score[:\s]+\d+\.?\s*/i, "").trim();
-      setResult({ score, analysis, hash: data.cryptographic_proof_hash ?? "N/A" });
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Unknown error occurred");
+
+      if (!response.ok) throw new Error('Failed to connect to Sentinel Enclave.');
+
+      const data = await response.json();
+      const scoreMatch = data.analysis_result.match(/Risk Score:\s*(\d+)/i);
+      const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
+      const cleanAnalysis = data.analysis_result.replace(/Risk Score:\s*\d+/i, '').trim();
+
+      setResult({
+        score: score,
+        analysis: cleanAnalysis,
+        hash: data.cryptographic_proof_hash
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error occurred.');
     } finally {
-      clearInterval(stepRef.current!);
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // shared panel style
-  const panel = {
-    background: "linear-gradient(135deg, rgba(20,13,0,0.95) 0%, rgba(10,7,0,0.97) 100%)",
-    borderColor: "rgba(245,158,11,0.3)",
-    boxShadow: "0 0 40px rgba(245,158,11,0.06), inset 0 1px 0 rgba(245,158,11,0.1)",
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-emerald-400 border-emerald-500 shadow-[0_0_30px_rgba(52,211,153,0.3)]';
+    if (score >= 50) return 'text-amber-400 border-amber-500 shadow-[0_0_30px_rgba(251,191,36,0.3)]';
+    return 'text-rose-500 border-rose-600 shadow-[0_0_30px_rgba(225,29,72,0.3)]';
   };
 
   return (
-    <>
-      <ScanlineOverlay />
-      <GradientMesh />
+    <div className="min-h-screen bg-black text-emerald-400 font-mono selection:bg-emerald-500/30 selection:text-emerald-100 flex flex-col items-center p-4 sm:p-8 relative overflow-hidden">
+      
+      {/* BACKGROUND GRID & GLOW */}
+      <div className="fixed inset-0 pointer-events-none opacity-20" 
+           style={{ 
+             backgroundImage: 'linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px)', 
+             backgroundSize: '40px 40px' 
+           }}>
+      </div>
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none"></div>
 
-      <div className="relative z-10 min-h-screen text-zinc-100 pb-16">
-        {/* Top crown glow */}
-        <div className="absolute top-0 inset-x-0 h-80 pointer-events-none" style={{
-          background: "radial-gradient(ellipse 70% 50% at 50% -10%, rgba(245,158,11,0.2) 0%, transparent 70%)"
-        }} />
-
-        <div className="relative z-10 max-w-5xl mx-auto px-4 pt-10 space-y-6">
-
-          {/* ── HEADER ── */}
-          <header className="rounded-xl px-6 py-5 border" style={panel}>
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <div className="relative flex-shrink-0">
-                  <Shield className="w-12 h-12" style={{
-                    color: "#f59e0b",
-                    filter: "drop-shadow(0 0 16px rgba(245,158,11,0.9)) drop-shadow(0 0 32px rgba(180,83,9,0.6))"
-                  }} />
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full animate-pulse" style={{
-                    background: "#f59e0b",
-                    boxShadow: "0 0 10px #f59e0b, 0 0 24px #b45309"
-                  }} />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-extrabold tracking-tight">
-                    <span className="gold-shimmer">SENTINEL TEE</span>
-                    <span className="mx-2 font-light" style={{ color: "rgba(245,158,11,0.4)", WebkitTextFillColor: "initial" }}>//</span>
-                    <span className="text-xl font-semibold" style={{ color: "#fef3c7", WebkitTextFillColor: "initial" }}>Verified Auditor</span>
-                  </h1>
-                  <p className="font-mono text-[11px] tracking-widest mt-0.5" style={{ color: "rgba(245,158,11,0.5)" }}>
-                    POWERED BY OPENGRADIENT • TRUSTED EXECUTION ENVIRONMENT v2.4.1
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-5 text-xs font-mono flex-wrap">
-                <div className="flex items-center gap-1.5" style={{ color: "rgba(245,158,11,0.8)" }}>
-                  <Radio className="w-3.5 h-3.5 animate-pulse" />
-                  <span>ENCLAVE ONLINE</span>
-                </div>
-                <div className="flex items-center gap-1.5" style={{ color: "rgba(180,83,9,0.8)" }}>
-                  <Activity className="w-3.5 h-3.5" />
-                  <span>TEE VERIFIED</span>
-                </div>
-                <a
-                  href="https://twitter.com/Marisdigitals11"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 group transition-all duration-200"
-                  style={{ color: "rgba(253,230,138,0.8)", textDecoration: "none" }}
-                >
-                  <Twitter className="w-3.5 h-3.5 transition-transform group-hover:scale-110"
-                    style={{ filter: "drop-shadow(0 0 5px rgba(245,158,11,0.7))", color: "#f59e0b" }} />
-                  <span className="group-hover:underline">@Marisdigitals11</span>
-                </a>
+      <div className="w-full max-w-4xl relative z-10 space-y-6 md:space-y-8 flex flex-col min-h-[90vh]">
+        
+        {/* HEADER SECTION - Cleaned up */}
+        <header className="flex flex-col md:flex-row items-center justify-between border border-emerald-900/40 bg-zinc-950/80 backdrop-blur-md rounded-xl p-6 shadow-2xl">
+          <div className="flex items-center space-x-4 mb-4 md:mb-0">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-emerald-500 blur-lg opacity-40 group-hover:opacity-60 transition-opacity"></div>
+              <Shield className="w-12 h-12 text-emerald-400 relative z-10 drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
+            </div>
+            <div className="text-center md:text-left">
+              <h1 className="text-3xl font-black tracking-widest text-white drop-shadow-md">
+                SENTINEL<span className="text-emerald-500">TEE</span>
+              </h1>
+              <div className="flex items-center justify-center md:justify-start space-x-2 text-[10px] text-emerald-600 uppercase tracking-[0.2em] font-bold mt-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Enclave Online // v2.4.1</span>
               </div>
             </div>
+          </div>
+          
+          {/* Status Badge */}
+          <div className="flex items-center space-x-2 px-4 py-1.5 bg-emerald-950/50 border border-emerald-500/30 rounded-full">
+            <Activity className="w-3 h-3 text-emerald-400 animate-pulse" />
+            <span className="text-xs text-emerald-300 font-semibold tracking-wide">NET_VERIFIED</span>
+          </div>
+        </header>
 
-            {/* Divider with gold glow */}
-            <div className="mt-5 mb-4 h-px" style={{
-              background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.5), rgba(253,230,138,0.8), rgba(245,158,11,0.5), transparent)"
-            }} />
-
-            <div className="grid grid-cols-3 text-center gap-2">
-              {[["14,829","AUDITS RUN"],["3,241","THREATS FOUND"],["99.97%","UPTIME"]].map(([v,l]) => (
-                <div key={l}>
-                  <div className="font-mono text-lg font-bold gold-shimmer-static">{v}</div>
-                  <div className="font-mono text-[10px] tracking-widest" style={{ color: "rgba(180,83,9,0.6)" }}>{l}</div>
-                </div>
-              ))}
+        {/* STATS GRID */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'AUDITS RUN', value: '14,829', icon: CheckCircle2 },
+            { label: 'THREATS FOUND', value: '3,241', icon: AlertTriangle },
+            { label: 'SYSTEM UPTIME', value: '99.97%', icon: Zap },
+            { label: 'ASSETS SECURED', value: '$4.2B', icon: Lock },
+          ].map((stat, i) => (
+            <div key={i} className="bg-zinc-900/40 border border-emerald-900/30 p-4 rounded-lg flex flex-col items-center justify-center hover:border-emerald-500/40 hover:bg-zinc-900/60 transition-all group">
+              <stat.icon className="w-5 h-5 text-emerald-800 mb-2 group-hover:text-emerald-400 transition-colors" />
+              <span className="text-xl md:text-2xl font-bold text-white tracking-wider font-sans">{stat.value}</span>
+              <span className="text-[9px] md:text-[10px] text-emerald-600/70 tracking-[0.2em] uppercase mt-1">{stat.label}</span>
             </div>
-          </header>
+          ))}
+        </div>
 
-          {/* ── INPUT ── */}
-          <CornerBrackets>
-            <div className="rounded-xl overflow-hidden border" style={{
-              ...panel,
-              boxShadow: "inset 0 2px 30px rgba(0,0,0,0.8)",
-            }}>
-              <div className="flex items-center gap-2.5 px-5 py-3" style={{
-                borderBottom: "1px solid rgba(245,158,11,0.12)",
-                background: "rgba(8,5,0,0.6)"
-              }}>
-                <Terminal className="w-4 h-4" style={{ color: "#f59e0b" }} />
-                <span className="font-mono text-xs tracking-widest" style={{ color: "rgba(245,158,11,0.75)" }}>TARGET_PAYLOAD_</span>
-                <span className="ml-auto font-mono text-[10px]" style={{ color: "rgba(180,83,9,0.5)" }}>{input.length} chars</span>
+        {/* MAIN INPUT CARD */}
+        <div className="relative group flex-grow">
+           <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-emerald-900 rounded-2xl opacity-20 blur group-hover:opacity-40 transition duration-1000"></div>
+           <div className="relative bg-zinc-950 border border-emerald-500/20 rounded-xl p-1 overflow-hidden">
+            <div className="bg-black/80 p-6 rounded-lg space-y-4 backdrop-blur-sm">
+              
+              <div className="flex justify-between items-center text-xs text-emerald-700 font-bold tracking-widest uppercase border-b border-emerald-900/30 pb-2 mb-2">
+                <span className="flex items-center gap-2"><Terminal className="w-3 h-3"/> INPUT_STREAM</span>
+                <span>SOLIDITY / RUST / BYTECODE</span>
               </div>
+
               <textarea
-                className="w-full bg-transparent p-5 text-sm resize-none outline-none font-mono leading-relaxed"
-                style={{ minHeight: "200px", color: "rgba(253,230,138,0.85)", caretColor: "#f59e0b" }}
-                placeholder={"// Paste Solidity contract or tokenomics logic here...\n// Supports: Solidity source, ABI JSON, plain descriptions\n\npragma solidity ^0.8.0;\ncontract Token { ... }"}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                disabled={loading}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="// Paste smart contract code here for TEE verification..."
+                className="w-full h-72 bg-zinc-900/30 border border-zinc-800 rounded p-4 text-sm text-emerald-300 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 focus:bg-zinc-900/50 focus:shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] transition-all resize-none leading-relaxed font-mono"
+                spellCheck="false"
               />
-            </div>
-          </CornerBrackets>
 
-          {/* ── BUTTON ── */}
-          <button
-            onClick={handleAudit}
-            disabled={loading || !input.trim()}
-            className="relative w-full py-5 rounded-xl font-mono font-black text-base tracking-[0.2em] uppercase transition-all duration-300 overflow-hidden group disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              background: loading || !input.trim()
-                ? "rgba(245,158,11,0.05)"
-                : "linear-gradient(135deg, rgba(245,158,11,0.18) 0%, rgba(180,83,9,0.12) 50%, rgba(245,158,11,0.1) 100%)",
-              border: "1px solid rgba(245,158,11,0.5)",
-              color: "#fcd34d",
-              boxShadow: loading || !input.trim()
-                ? "none"
-                : "0 0 30px rgba(245,158,11,0.2), 0 0 80px rgba(180,83,9,0.1), inset 0 1px 0 rgba(253,230,138,0.15)",
-            }}
-          >
-            {!loading && (
-              <span className="absolute inset-0 -skew-x-12 translate-x-[-110%] group-hover:translate-x-[110%] transition-transform duration-700 pointer-events-none"
-                style={{ background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.18), rgba(253,230,138,0.1), transparent)" }} />
-            )}
-            <span className="relative flex items-center justify-center gap-3">
-              {loading ? (
-                <><Cpu className="w-5 h-5 animate-spin" style={{ color: "#f59e0b" }} /><span className="animate-pulse">[ ROUTING TO SECURE ENCLAVE... ]</span></>
-              ) : (
-                <><Zap className="w-5 h-5" style={{ filter: "drop-shadow(0 0 8px #f59e0b)", color: "#fcd34d" }} />INITIATE TEE SECURITY AUDIT</>
-              )}
-            </span>
-          </button>
-
-          {/* ── LOADING ── */}
-          {loading && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 font-mono text-[11px] tracking-widest" style={{ color: "rgba(180,83,9,0.7)" }}>
-                <Lock className="w-3.5 h-3.5" style={{ color: "#b45309" }} />
-                SECURE CHANNEL ACTIVE — DO NOT NAVIGATE AWAY
-              </div>
-              <LoadingTerminal step={loadStep} />
-            </div>
-          )}
-
-          {/* ── ERROR ── */}
-          {error && (
-            <div className="rounded-xl p-4 flex items-start gap-3 border" style={{
-              background: "rgba(20,5,5,0.9)",
-              borderColor: "rgba(248,113,113,0.35)",
-              boxShadow: "0 0 24px rgba(248,113,113,0.08)"
-            }}>
-              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#f87171", filter: "drop-shadow(0 0 6px rgba(248,113,113,0.6))" }} />
-              <div>
-                <div className="font-mono font-bold text-sm tracking-widest" style={{ color: "#f87171" }}>AUDIT FAILED</div>
-                <div className="font-mono text-xs mt-1" style={{ color: "rgba(248,113,113,0.6)" }}>{error}</div>
-              </div>
-            </div>
-          )}
-
-          {/* ── RESULTS ── */}
-          {result && (
-            <div className="space-y-4">
-              {/* Section header */}
-              <div className="flex items-center gap-3 font-mono text-[11px] tracking-widest" style={{ color: "rgba(245,158,11,0.5)" }}>
-                <CheckCircle className="w-4 h-4" style={{ color: "#f59e0b", filter: "drop-shadow(0 0 6px #f59e0b)" }} />
-                AUDIT COMPLETE // TEE ATTESTATION VERIFIED // RESULTS BELOW
-                <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, rgba(245,158,11,0.3), transparent)" }} />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                {/* Score */}
-                <CornerBrackets className="md:col-span-2">
-                  <div className="rounded-xl p-6 flex flex-col items-center justify-center gap-1 h-full border" style={{
-                    ...panel,
-                    boxShadow: "inset 0 0 60px rgba(0,0,0,0.7)",
-                  }}>
-                    <div className="font-mono text-[10px] tracking-[0.3em] mb-2" style={{ color: "rgba(180,83,9,0.6)" }}>SECURITY SCORE</div>
-                    <ScoreRing score={result.score} />
-                    <div className="font-mono text-[10px] tracking-widest mt-2" style={{ color: "rgba(180,83,9,0.4)" }}>COMPOSITE RISK INDEX</div>
-                  </div>
-                </CornerBrackets>
-
-                {/* Logs */}
-                <div className="md:col-span-3 rounded-xl overflow-hidden border" style={panel}>
-                  <div className="flex items-center gap-2.5 px-4 py-3" style={{
-                    borderBottom: "1px solid rgba(245,158,11,0.12)",
-                    background: "rgba(8,5,0,0.6)"
-                  }}>
-                    {result.score >= 80
-                      ? <CheckCircle className="w-4 h-4" style={{ color: "#f59e0b" }} />
-                      : result.score >= 50
-                        ? <AlertTriangle className="w-4 h-4 text-orange-400" />
-                        : <XCircle className="w-4 h-4 text-red-400" />}
-                    <span className="font-mono text-xs tracking-widest" style={{ color: "rgba(180,83,9,0.7)" }}>AUDIT_LOG_STREAM_</span>
-                  </div>
-                  <div className="p-3">
-                    <LogTerminal text={result.analysis} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Proof Hash */}
-              <div className="rounded-xl overflow-hidden border" style={{
-                background: "linear-gradient(135deg, rgba(15,10,0,0.98) 0%, rgba(8,5,0,0.99) 100%)",
-                borderColor: "rgba(245,158,11,0.4)",
-                boxShadow: "0 0 40px rgba(245,158,11,0.1), inset 0 0 50px rgba(0,0,0,0.6)",
-              }}>
-                <div className="flex items-center gap-2.5 px-5 py-3" style={{
-                  borderBottom: "1px solid rgba(245,158,11,0.12)",
-                  background: "rgba(8,5,0,0.7)"
-                }}>
-                  <Lock className="w-4 h-4" style={{ color: "#f59e0b", filter: "drop-shadow(0 0 8px rgba(245,158,11,0.8))" }} />
-                  <span className="font-mono text-xs tracking-widest" style={{ color: "rgba(245,158,11,0.8)" }}>VERIFIED TEE PROOF HASH</span>
-                  <span className="ml-auto font-mono text-[10px]" style={{ color: "rgba(180,83,9,0.45)" }}>SHA-256 • RSA-4096 • ON-CHAIN VERIFIABLE</span>
-                </div>
-                <div className="px-5 py-4 flex flex-col gap-1.5">
-                  <span className="font-mono text-sm break-all tracking-wide gold-shimmer-static"
-                    style={{ filter: "drop-shadow(0 0 8px rgba(245,158,11,0.35))" }}>
-                    {result.hash}
-                  </span>
-                  <div className="flex items-center gap-4 font-mono text-[10px] tracking-widest" style={{ color: "rgba(180,83,9,0.35)" }}>
-                    <span>SIGNED BY ENCLAVE</span><span>•</span>
-                    <span>TAMPER-PROOF</span><span>•</span>
-                    <span>IMMUTABLE ATTESTATION</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <p className="text-center font-mono text-[10px] tracking-widest pt-2" style={{ color: "rgba(180,83,9,0.25)" }}>
-            SENTINEL TEE // TRUSTED EXECUTION ENVIRONMENT // ALL AUDITS CRYPTOGRAPHICALLY ATTESTED BY OPENGRADIENT
-          </p>
-
-          {/* Footer Twitter link */}
-          <div className="flex flex-col items-center gap-3 pb-6">
-            <div className="h-px w-72" style={{
-              background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.4), rgba(253,230,138,0.6), rgba(245,158,11,0.4), transparent)"
-            }} />
-            <a
-              href="https://twitter.com/Marisdigitals11"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 group transition-all duration-200"
-              style={{ textDecoration: "none" }}
-            >
-              <div
-                className="flex items-center justify-center w-7 h-7 rounded-full border transition-all duration-200 group-hover:scale-110"
-                style={{
-                  borderColor: "rgba(245,158,11,0.4)",
-                  background: "rgba(245,158,11,0.08)",
-                  boxShadow: "0 0 10px rgba(245,158,11,0.15)",
-                }}
+              <button
+                onClick={handleAudit}
+                disabled={isLoading || !code.trim()}
+                className="w-full py-5 bg-gradient-to-r from-emerald-900/40 to-emerald-800/20 border border-emerald-600/50 hover:border-emerald-400 text-emerald-100 font-bold text-lg tracking-[0.2em] uppercase rounded shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center space-x-3"
               >
-                <Twitter className="w-3.5 h-3.5" style={{ color: "#f59e0b" }} />
-              </div>
-              <span
-                className="font-mono text-sm tracking-[0.15em] gold-shimmer-static group-hover:underline"
-                style={{ filter: "drop-shadow(0 0 8px rgba(245,158,11,0.4))" }}
-              >
-                @Marisdigitals11
-              </span>
-            </a>
-            <div className="h-px w-72" style={{
-              background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.4), rgba(253,230,138,0.6), rgba(245,158,11,0.4), transparent)"
-            }} />
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+                    <span className="animate-pulse text-emerald-400">ENCLAVE PROCESSING...</span>
+                  </>
+                ) : (
+                  <>
+                    <Cpu className="w-5 h-5" />
+                    <span>INITIATE TEE AUDIT</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* RESULTS SECTION */}
+        {error && (
+          <div className="p-4 bg-rose-950/20 border border-rose-900/50 text-rose-400 rounded-lg flex items-center space-x-3 animate-in fade-in slide-in-from-top-2">
+            <AlertTriangle className="w-5 h-5" />
+            <p className="text-sm font-semibold">{error}</p>
+          </div>
+        )}
+
+        {result && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-4">
+            {/* SCORE CARD */}
+            <div className={`p-8 border rounded-xl bg-black flex flex-col md:flex-row items-center justify-between gap-8 ${getScoreColor(result.score)}`}>
+              <div className="text-center md:text-left flex flex-col items-center md:items-start">
+                <p className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-70 mb-2">Risk Score</p>
+                <div className="text-7xl md:text-8xl font-black tracking-tighter drop-shadow-2xl relative">
+                  {result.score}
+                  <span className="text-2xl opacity-40 font-normal absolute top-2 -right-8">/100</span>
+                </div>
+              </div>
+              <div className="h-px w-full md:w-px md:h-24 bg-current opacity-20"></div>
+              <div className="flex-1 text-sm md:text-base leading-relaxed opacity-90 font-medium font-sans">
+                {result.analysis}
+              </div>
+            </div>
+
+            {/* HASH BAR */}
+            <div className="p-4 border border-emerald-900/30 rounded bg-zinc-950 flex items-center space-x-4 overflow-hidden shadow-lg">
+              <div className="p-2 bg-emerald-900/20 rounded">
+                <Lock className="w-4 h-4 text-emerald-500" />
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-[9px] text-emerald-700 font-bold tracking-widest mb-0.5 uppercase">Cryptographic Proof Hash (OpenGradient)</p>
+                <p className="text-xs text-emerald-500/80 truncate font-mono">{result.hash}</p>
+              </div>
+              <div className="hidden md:block px-3 py-1 bg-emerald-500/10 rounded-full text-[10px] text-emerald-400 border border-emerald-500/20 font-bold tracking-wider">
+                VERIFIED
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* FOOTER SIGNATURE - The new bottom section */}
+        <footer className="mt-8 pt-8 border-t border-emerald-900/20 flex justify-center">
+            <a 
+                href="https://twitter.com/Marisdigitals11" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="group flex items-center space-x-2 px-4 py-2 bg-black/40 border border-emerald-900/30 rounded-full hover:border-emerald-500/50 hover:bg-emerald-950/30 transition-all duration-300"
+            >
+                <Twitter className="w-4 h-4 text-emerald-600 group-hover:text-emerald-400 transition-colors" />
+                <span className="text-[10px] font-mono tracking-[0.2em] text-emerald-700 group-hover:text-emerald-300 uppercase">
+                    System Architecture by @Marisdigitals11
+                </span>
+            </a>
+        </footer>
+
       </div>
-    </>
+    </div>
   );
 }
