@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Shield, Activity, Lock, Terminal, Loader2, CheckCircle2, AlertTriangle, Zap, Cpu, Twitter } from 'lucide-react';
+import { Shield, Activity, Lock, Terminal, Loader2, CheckCircle2, AlertTriangle, Zap } from 'lucide-react';
 
 export default function App() {
   const [code, setCode] = useState('');
@@ -65,7 +64,7 @@ export default function App() {
 
       <div className="w-full max-w-4xl relative z-10 space-y-6 md:space-y-8 flex flex-col min-h-[90vh]">
         
-        {/* HEADER SECTION - Cleaned up */}
+        {/* HEADER SECTION */}
         <header className="flex flex-col md:flex-row items-center justify-between border border-emerald-900/40 bg-zinc-950/80 backdrop-blur-md rounded-xl p-6 shadow-2xl">
           <div className="flex items-center space-x-4 mb-4 md:mb-0">
             <div className="relative group">
@@ -137,7 +136,7 @@ export default function App() {
                   </>
                 ) : (
                   <>
-                    <Cpu className="w-5 h-5" />
+                    <Zap className="w-5 h-5" />
                     <span>INITIATE TEE AUDIT</span>
                   </>
                 )}
@@ -187,7 +186,7 @@ export default function App() {
           </div>
         )}
 
-        {/* FOOTER SIGNATURE - The new bottom section */}
+        {/* FOOTER SIGNATURE */}
         <footer className="mt-8 pt-8 border-t border-emerald-900/20 flex justify-center">
             <a 
                 href="https://twitter.com/Marisdigitals11" 
@@ -195,7 +194,10 @@ export default function App() {
                 rel="noopener noreferrer" 
                 className="group flex items-center space-x-2 px-4 py-2 bg-black/40 border border-emerald-900/30 rounded-full hover:border-emerald-500/50 hover:bg-emerald-950/30 transition-all duration-300"
             >
-                <Twitter className="w-4 h-4 text-emerald-600 group-hover:text-emerald-400 transition-colors" />
+                {/* Manual SVG for Twitter to prevent build errors */}
+                <svg className="w-4 h-4 text-emerald-600 group-hover:text-emerald-400 transition-colors" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
+                </svg>
                 <span className="text-[10px] font-mono tracking-[0.2em] text-emerald-700 group-hover:text-emerald-300 uppercase">
                     System Architecture by @Marisdigitals11
                 </span>
